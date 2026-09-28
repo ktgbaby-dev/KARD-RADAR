@@ -207,6 +207,53 @@ class WebsiteTests(unittest.TestCase):
         self.assertEqual(down["status_label"], "unreachable")
 
 
+class SerperFallbackTests(unittest.TestCase):
+    def test_simplify(self):
+        from radar.discovery import simplify_query
+        self.assertEqual(simplify_query('site:instagram.com Fashion Lagos "DM to order"'), "instagram Fashion Lagos DM to order")
+        self.assertEqual(simplify_query('site:www.tiktok.com wigs Abuja'), "tiktok wigs Abuja")
+        self.assertEqual(simplify_query('Fashion Lagos Nigeria "new collection"'), "Fashion Lagos Nigeria new collection")
+
+    def test_free_plan_rejection_retries_plain_query(self):
+        from radar import discovery as D
+        sent = []
+
+        def fake_http(url, method="GET", headers=None, body=None, timeout=20):
+            sent.append(body["q"])
+            if "site:" in body["q"] or '"' in body["q"]:
+                raise D.ProviderError('HTTP 400 {"message":"Query pattern not allowed for free accounts.","statusCode":400}')
+            return {"organic": [{"title": "Zuri (@zuri.ng) • Instagram", "link": "https://www.instagram.com/zuri.ng/", "snippet": "DM to order"}]}
+
+        orig, D._http_json = D._http_json, fake_http
+        D.SerperProvider.operators_blocked = False
+        try:
+            p = D.SerperProvider("k")
+            r1 = p.search('site:instagram.com Fashion Lagos "DM to order"')
+            r2 = p.search('site:tiktok.com Fashion Lagos "DM to order"')
+        finally:
+            D._http_json = orig
+            D.SerperProvider.operators_blocked = False
+        self.assertEqual(sent, ['site:instagram.com Fashion Lagos "DM to order"', "instagram Fashion Lagos DM to order",
+                                "tiktok Fashion Lagos DM to order"])  # 2nd query skips the doomed attempt
+        self.assertEqual(r1[0]["url"], "https://www.instagram.com/zuri.ng/")
+        self.assertEqual(len(p.notes), 1)
+        self.assertEqual(len(r2), 1)
+
+    def test_other_errors_still_raise(self):
+        from radar import discovery as D
+
+        def fake_http(*a, **k):
+            raise D.ProviderError("HTTP 401 unauthorized")
+
+        orig, D._http_json = D._http_json, fake_http
+        try:
+            with self.assertRaises(D.ProviderError):
+                D.SerperProvider("bad").search("site:instagram.com x")
+        finally:
+            D._http_json = orig
+            D.SerperProvider.operators_blocked = False
+
+
 class CsvSafetyTests(unittest.TestCase):
     def test_formula_injection(self):
         self.assertEqual(_safe_cell("=HYPERLINK(1)"), "'=HYPERLINK(1)")

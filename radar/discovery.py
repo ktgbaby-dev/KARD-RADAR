@@ -47,16 +47,48 @@ class SearchProvider:
         raise NotImplementedError
 
 
+def simplify_query(query: str) -> str:
+    """Strip search operators for plans that reject them:
+    'site:instagram.com Fashion Lagos "DM to order"' -> 'instagram Fashion Lagos DM to order'."""
+    q = re.sub(r"\bsite:(?:www\.)?([a-z0-9-]+)\.[a-z.]+", r"\1", query, flags=re.I)
+    q = q.replace('"', " ")
+    q = re.sub(r"\s+OR\s+", " ", q)
+    return re.sub(r"\s+", " ", q).strip()
+
+
 class SerperProvider(SearchProvider):
-    """Google results via serper.dev (https://serper.dev)."""
+    """Google results via serper.dev (https://serper.dev).
+
+    Free Serper accounts reject operators such as site: and "quotes" ("Query pattern not allowed for free accounts").
+    When that happens the query is retried in plain words, and later queries in this process go straight to plain
+    words. Results are less targeted, but URLs are still classified (Instagram / TikTok / website) the same way."""
     name = "serper"
+    operators_blocked = False  # shared across instances: learned once per process
 
     def __init__(self, key: str):
         self.key = key
+        self.notes: list[str] = []
+
+    def _call(self, q: str) -> dict:
+        return _http_json("https://google.serper.dev/search", "POST", {"X-API-KEY": self.key},
+                          {"q": q, "gl": "ng", "hl": "en", "num": 20})
 
     def search(self, query: str) -> list[dict]:
-        data = _http_json("https://google.serper.dev/search", "POST", {"X-API-KEY": self.key},
-                          {"q": query, "gl": "ng", "hl": "en", "num": 20})
+        q = simplify_query(query) if SerperProvider.operators_blocked else query
+        try:
+            data = self._call(q)
+        except ProviderError as e:
+            msg = str(e).lower()
+            if "not allowed" in msg and q != simplify_query(query):
+                SerperProvider.operators_blocked = True
+                data = self._call(simplify_query(query))
+            else:
+                raise
+        if SerperProvider.operators_blocked:
+            note = ("Your Serper plan doesn't allow site: or \"quoted\" search operators, so plain-word queries were used "
+                    "(results are broader; upgrading Serper restores targeted Instagram/TikTok searches).")
+            if note not in self.notes:
+                self.notes.append(note)
         return [{"title": r.get("title", ""), "url": r.get("link", ""), "snippet": r.get("snippet", ""),
                  "date": r.get("date")} for r in data.get("organic", []) if r.get("link")]
 
@@ -290,6 +322,9 @@ def run_discovery(conn: Conn, params: dict, cfg: Config, settings: dict, provide
                 errors.append(f"{p.name}: {e}")
     status = "ok" if cands else ("error" if errors else "empty")
     msg = "; ".join(errors[:3]) if errors else ("" if cands else "The search returned no business candidates.")
+    notes = list(dict.fromkeys(n for p in provs for n in getattr(p, "notes", [])))
+    if notes:
+        msg = " ".join([msg, *notes]).strip()
     run_id = conn.insert("discovery_runs", {"params": dumps(clean_params), "providers": dumps(sorted(set(used))),
                                             "status": status, "message": msg, "result_count": 0, "created_at": ts})
     stored = _store_candidates(conn, run_id, cands, location, industry, settings)
