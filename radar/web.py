@@ -106,6 +106,8 @@ def _serialize(resp: Response, is_api: bool, head: bool) -> tuple[int, list[tupl
 def _static(path: str) -> Response:
     if path in ("", "/"):
         path = "/index.html"
+    elif path == "/favicon.ico":
+        path = "/img/favicon.svg"
     target = (STATIC / path.lstrip("/")).resolve()
     if not str(target).startswith(str(STATIC.resolve())) or not target.is_file():
         target = STATIC / "index.html"  # SPA fallback

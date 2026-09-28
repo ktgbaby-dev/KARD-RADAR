@@ -31,8 +31,9 @@ def _setup():
         elif len(cfg.session_secret) < 32:
             error = "SESSION_SECRET must be at least 32 characters."
         elif cfg.on_vercel and not cfg.database_url:
-            error = ("No database configured. Vercel's disk is temporary, so SQLite would lose your leads. "
-                     "Add a Postgres database (e.g. Neon from the Vercel Marketplace) and set DATABASE_URL.")
+            error = ("No database connected. Vercel's disk is temporary, so a Postgres database is required: "
+                     "in the Vercel project open Storage → Create Database → Neon, connect it to this project "
+                     "(all environments), then redeploy.")
         else:
             try:
                 db = Database(cfg)

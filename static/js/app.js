@@ -100,7 +100,7 @@ function showLogin(message = "") {
       ${message ? `<div class="notice warn">${esc(message)}</div>` : ""}
       <label class="field"><span>Admin password</span><input type="password" name="password" autocomplete="current-password" required></label>
       <button class="btn primary" type="submit">Sign in</button>
-      <p class="small faint">The password is the ADMIN_PASSWORD value in the server's .env file.</p>
+      <p class="small faint">The password is the ADMIN_PASSWORD setting (Vercel → Settings → Environment Variables, or .env when running locally).</p>
     </form></div>`;
   const form = document.getElementById("login-form");
   form.addEventListener("submit", async (e) => {
