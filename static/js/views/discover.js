@@ -63,7 +63,7 @@ export async function render(el, params, { state }) {
         <section class="card">
           ${mode === "search" ? `
             ${configured.length ? `<div class="notice info" style="margin-bottom:14px"><div>Using: <b>${esc(configured.map((c) => c.label).join(", "))}</b>. Each search runs up to 6 queries.</div></div>`
-              : `<div class="notice warn" style="margin-bottom:14px"><div><b>No search provider configured.</b> Add <code>SERPER_API_KEY</code>, <code>BRAVE_SEARCH_API_KEY</code> or <code>GOOGLE_PLACES_API_KEY</code> to the server's .env and restart. Until then, use <b>Paste URLs</b> or the <b>Search playbook</b> — nothing will be invented.</div></div>`}
+              : `<div class="notice warn" style="margin-bottom:14px"><div><b>No search provider configured.</b> Add <code>SERPER_API_KEY</code>, <code>BRAVE_SEARCH_API_KEY</code> or <code>GOOGLE_PLACES_API_KEY</code> as an environment variable (Vercel → Settings → Environment Variables, then redeploy; or .env locally, then restart). Until then, use <b>Paste URLs</b> or the <b>Search playbook</b> — nothing will be invented.</div></div>`}
             <form id="dform" class="form-grid">
               <label class="field"><span>Location</span><input type="text" name="location" list="dcities" required value="${esc(p.location || params.location || "Lagos")}"></label>
               <label class="field"><span>Industry</span><select name="industry">${meta.industries.map((i) => `<option ${i === (p.industry || params.industry) ? "selected" : ""}>${esc(i)}</option>`).join("")}</select></label>

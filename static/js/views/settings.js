@@ -60,7 +60,7 @@ export async function render(el, _p, { loadMeta }) {
             ${d.status.search.map((p) => `<div class="list-item"><div class="grow"><div class="title">${esc(p.label)}</div><div class="meta">${esc(p.env)}</div></div><span class="chip ${p.configured ? "yes" : "no"}">${p.configured ? "On" : "Off"}</span></div>`).join("")}
             <div class="list-item"><div class="grow"><div class="title">Database</div><div class="meta">${esc(d.status.database)}</div></div></div>
           </div>
-          <p class="small faint" style="margin-top:8px">Keys are read on the server from .env and never sent to the browser. Restart the server after changing them.</p>
+          <p class="small faint" style="margin-top:8px">Keys are environment variables read on the server and never sent to the browser. On Vercel, add them under Settings → Environment Variables and redeploy; locally, put them in .env and restart.</p>
         </section>
         <section class="card"><div class="card-head"><h2>AI usage</h2></div>
           ${d.ai_usage.length ? `<div class="table-wrap"><table class="data"><thead><tr><th>Model</th><th class="num">Runs</th><th class="num">Tokens</th><th class="num">≈ Cost</th></tr></thead><tbody>
