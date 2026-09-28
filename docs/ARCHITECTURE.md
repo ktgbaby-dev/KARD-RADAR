@@ -130,7 +130,8 @@ are on a hard block-list inside the fetcher.
 - Any host that runs a long-lived Python process: Render, Railway, Fly.io or a VPS: `python server.py --host 0.0.0.0 --port $PORT`.
 - SQLite on a persistent volume for a single team; set `DATABASE_URL` to Postgres/Supabase for managed storage
   (adapter included; needs `psycopg`; not exercised in this environment).
-- Vercel is a poor fit for V1 (serverless, ephemeral disk). A future Next.js frontend could live on Vercel against this API.
+- Vercel: supported via the WSGI app in `radar/wsgi.py` (`pyproject.toml` → `[tool.vercel] entrypoint`). Requires Postgres
+  (e.g. Neon from the Vercel Marketplace) because the serverless disk is ephemeral; SQLite is refused there.
 
 ## 13. Cost considerations
 - Deterministic rules run first and are free; AI runs only on demand and is cached by evidence hash.

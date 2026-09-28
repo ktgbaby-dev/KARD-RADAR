@@ -92,7 +92,7 @@ class Database:
     def connect(self) -> Conn:
         if self.dialect == "pg":
             import psycopg  # noqa: optional dependency, only needed for PostgreSQL
-            raw = psycopg.connect(self.cfg.database_url)
+            raw = psycopg.connect(self.cfg.database_url, connect_timeout=10, prepare_threshold=None)
             conn = Conn(raw, "pg")
         else:
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)

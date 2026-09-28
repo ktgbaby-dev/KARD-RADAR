@@ -1,0 +1,17 @@
+[project]
+name = "kard-radar"
+version = "1.0.0"
+description = "Kard Radar — lead intelligence & outreach system for Kard by Kal's Digital"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=1.8.0",
+    "psycopg[binary]>=3.2",
+]
+
+[tool.uv]
+# This repo is an app, not an installable package.
+package = false
+
+[tool.vercel]
+# WSGI app exposed by radar/wsgi.py (wraps the same dispatcher as `python server.py`).
+entrypoint = "radar.wsgi:app"

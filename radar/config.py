@@ -29,11 +29,14 @@ def env(name: str, default: str = "") -> str:
 
 class Config:
     def __init__(self) -> None:
-        self.database_url = env("DATABASE_URL")
+        # Vercel sets VERCEL=1. Its disk is temporary, so SQLite is refused there (see radar/wsgi.py).
+        self.on_vercel = env("VERCEL") == "1"
+        # DATABASE_URL, or the names Vercel's Neon / Supabase / Postgres integrations inject.
+        self.database_url = next((env(k) for k in ("DATABASE_URL", "POSTGRES_URL") if env(k)), "")
         self.db_path = env("KARD_DB_PATH", str(ROOT / "data" / "kard_radar.db"))
         self.admin_password = env("ADMIN_PASSWORD")
         self.session_secret = env("SESSION_SECRET")
-        self.secure_cookies = env("SECURE_COOKIES", "0") == "1"
+        self.secure_cookies = env("SECURE_COOKIES", "1" if self.on_vercel else "0") == "1"
         self.anthropic_key_set = bool(env("ANTHROPIC_API_KEY"))
         self.anthropic_model = env("ANTHROPIC_MODEL", "claude-opus-5")
         self.ai_effort = env("AI_EFFORT", "medium")

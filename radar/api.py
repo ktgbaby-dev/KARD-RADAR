@@ -55,7 +55,7 @@ class _Guard:
 
 @route("POST", "/api/login", auth_required=False)
 def login(req):
-    ip = req.handler.client_address[0]
+    ip = req.client_ip
     if not req.cfg.admin_password or not req.cfg.session_secret:
         raise ApiError(503, "Server is not configured: set ADMIN_PASSWORD and SESSION_SECRET (run: python server.py --init)")
     if auth.throttled(ip):
@@ -73,7 +73,7 @@ def logout(req):
 
 @route("GET", "/api/me", auth_required=False)
 def me(req):
-    return {"authenticated": req.handler._authed(), "configured": bool(req.cfg.admin_password and req.cfg.session_secret)}
+    return {"authenticated": req.authed, "configured": bool(req.cfg.admin_password and req.cfg.session_secret)}
 
 
 # ------------------------------------------------------------------ meta / status

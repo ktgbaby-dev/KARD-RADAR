@@ -107,7 +107,7 @@ def _raw_get(url: str, cfg: Config, max_bytes: int = MAX_BYTES) -> FetchResult:
                 body = data.decode(charset, errors="replace")
             except LookupError:
                 body = data.decode("utf-8", errors="replace")
-        return FetchResult(url=url, final_url=current, status=status, content_type=ctype, body=body[:MAX_STORED_CHARS],
+        return FetchResult(url=url, final_url=current, status=status, content_type=ctype, body=body.replace("\x00", "")[:MAX_STORED_CHARS],
                            error="" if not truncated else "Response truncated at size limit",
                            elapsed_ms=int((time.monotonic() - started) * 1000))
     return FetchResult(url=url, final_url=current, status=None, error="Too many redirects", body="", content_type="",

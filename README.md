@@ -64,7 +64,7 @@ Restart the server after changing `.env`.
 | **Brave Search API** | Built; **not tested live** | brave.com/search/api (free tier) → `BRAVE_SEARCH_API_KEY`. |
 | **Google Places API (New)** | Built; **not tested live** | Google Cloud project with billing, enable "Places API (New)" → `GOOGLE_PLACES_API_KEY`. Restrict the key to that API. |
 | **Instagram Graph API / TikTok APIs** | Not integrated (needs Meta / TikTok app review) | Future. Until then use social snapshots, pasted URLs and search results. |
-| **PostgreSQL / Supabase** | Adapter written; **not exercised here** (no Postgres available) | Test with `DATABASE_URL` before relying on it. SQLite is the tested path. |
+| **PostgreSQL (Neon / Supabase)** | Adapter written and SQL audited for Postgres; **not yet run against a real Postgres** (none available on this machine) | Required on Vercel. Its first real run will be your Vercel deploy — check the login screen / function logs. SQLite is the locally tested path. |
 
 Without any keys the app is fully usable: manual leads, pasted URLs, CSV import, website research, rule-based
 signals, deterministic scoring, template outreach, Today's 20, CRM and dashboards all work.
@@ -112,19 +112,37 @@ revenue) plus the score, category points and signal list frozen at first contact
 
 ## Deployment
 
+### Vercel
+
+`pyproject.toml` points Vercel at the WSGI app in `radar/wsgi.py` (`[tool.vercel] entrypoint = "radar.wsgi:app"`) and
+lists the dependencies. Vercel's disk is temporary, so **a Postgres database is required** — the app refuses to run on
+SQLite there and says so on the login screen.
+
+1. In the Vercel project: **Storage → Create / connect database → Neon (Postgres)**. This injects `DATABASE_URL` /
+   `POSTGRES_URL` automatically. Any Postgres URL (Supabase, etc.) set as `DATABASE_URL` also works.
+2. **Settings → Environment Variables**: add `ADMIN_PASSWORD` and `SESSION_SECRET` (≥ 32 characters, e.g. the output of
+   `python -c "import secrets; print(secrets.token_hex(32))"`). Optionally `ANTHROPIC_API_KEY`, `SERPER_API_KEY`,
+   `BRAVE_SEARCH_API_KEY`, `GOOGLE_PLACES_API_KEY`.
+3. Redeploy. Tables are created automatically on first request. Cookies are `Secure` by default on Vercel.
+
+Notes: each request opens its own database connection (use Neon's pooled URL, which the integration provides). Research
+and AI requests can take 10–60 s, within Vercel's default function duration.
+
+### Any other host
+
 Any host that runs a long-lived Python process works (Render, Railway, Fly.io, a VPS):
 
 ```bash
 python server.py --host 0.0.0.0 --port $PORT
 ```
 
+or any WSGI server with `radar.wsgi:app`.
+
 - Put it behind HTTPS and set `SECURE_COOKIES=1`.
 - SQLite needs a **persistent disk** (e.g. a Render disk mounted at `/data` with `KARD_DB_PATH=/data/kard_radar.db`),
   or use `DATABASE_URL` for managed Postgres.
-- Vercel is not a good fit for this V1 (serverless functions, ephemeral disk). A future Next.js frontend could be hosted
-  on Vercel and call this API.
-- Login throttling is per client IP in memory; behind a proxy all users share the proxy IP, which only matters if you
-  expose it more widely than the internal team.
+- Login throttling is per client IP in memory (per instance on serverless); it only matters if you expose the app more
+  widely than the internal team.
 
 ## Project layout
 
